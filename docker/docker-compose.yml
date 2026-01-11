@@ -16,19 +16,17 @@ services:
     command: |
       -c '
         set -e
-        echo "Building for Linux platforms..."
+        echo "Building for Linux platforms (parallel)..."
         
-        # Linux x64
-        echo "→ Linux x64"
-        cargo zigbuild --release --target x86_64-unknown-linux-gnu
-        cp /build/target/x86_64-unknown-linux-gnu/release/agent-browser /output/agent-browser-linux-x64
-        chmod +x /output/agent-browser-linux-x64
+        # Build both targets in parallel
+        (echo "→ Linux x64" && cargo zigbuild --release --target x86_64-unknown-linux-gnu && cp /build/target/x86_64-unknown-linux-gnu/release/agent-browser /output/agent-browser-linux-x64 && chmod +x /output/agent-browser-linux-x64 && echo "✓ Linux x64 done") &
+        PID1=$!
         
-        # Linux ARM64
-        echo "→ Linux ARM64"
-        cargo zigbuild --release --target aarch64-unknown-linux-gnu
-        cp /build/target/aarch64-unknown-linux-gnu/release/agent-browser /output/agent-browser-linux-arm64
-        chmod +x /output/agent-browser-linux-arm64
+        (echo "→ Linux ARM64" && cargo zigbuild --release --target aarch64-unknown-linux-gnu && cp /build/target/aarch64-unknown-linux-gnu/release/agent-browser /output/agent-browser-linux-arm64 && chmod +x /output/agent-browser-linux-arm64 && echo "✓ Linux ARM64 done") &
+        PID2=$!
+        
+        # Wait for both to complete
+        wait $PID1 $PID2
         
         echo ""
         echo "✓ Linux platforms built successfully!"
